@@ -1,0 +1,432 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTFS — Least Worst Frequency (Kanban v2)</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111827; --muted:#9ca3af; --text:#e5e7eb; --line:#1f2937;
+    --chip:#1f2937; --chipText:#cbd5e1; --accent:#60a5fa; --btn:#2563eb; --btnText:#fff;
+    --good:#10b981; --ok:#22c55e; --mid:#06b6d4; --warn:#f59e0b; --meh:#ef4444; --dark:#374151;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+    background: radial-gradient(1200px 600px at 10% 0%, #0e172a 0%, #0b1220 50%, #090f1b 100%);
+    color: var(--text); margin:0; padding:24px;
+  }
+  .wrap{max-width:1200px;margin:0 auto}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px}
+  h1{font-size:22px;margin:0;font-weight:800;letter-spacing:.2px}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow: 0 6px 20px rgba(0,0,0,.35); padding:16px; margin-bottom:16px}
+  .grid{display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:12px}
+  label{font-weight:700; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+  input[type="file"], input[type="time"]{
+    width:100%; padding:10px 12px; border-radius:10px; background:#0b1220; border:1px solid var(--line); color:var(--text)
+  }
+  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px}
+  .btn{background:var(--btn); color:var(--btnText); border:0; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .chip{background:var(--chip); color:var(--chipText); padding:8px 10px; border-radius:999px; font-size:12px; border:1px solid var(--line)}
+  .seg{display:flex; gap:6px; background:#0b1220; border:1px solid var(--line); padding:4px; border-radius:12px}
+  .seg button{background:transparent; color:var(--muted); border:0; padding:8px 10px; border-radius:8px; cursor:pointer; font-weight:700}
+  .seg button.active{background:var(--btn); color:#fff}
+  .switch{display:flex; gap:8px; align-items:center}
+  .switch input{accent-color:var(--accent)}
+  .search{flex:1; display:flex; align-items:center; gap:8px; background:#0b1220; border:1px solid var(--line); padding:8px 10px; border-radius:10px}
+  .search input{flex:1; background:transparent; border:0; color:var(--text); outline:none}
+  .right{margin-left:auto}
+  /* Kanban */
+  .kanban{display:grid; grid-template-columns:repeat(6,1fr); gap:12px}
+  .col{background:#0b1220; border:1px solid var(--line); border-radius:14px; padding:12px; min-height:120px}
+  .col h3{margin:0 0 8px; font-size:13px; color:#cbd5e1; letter-spacing:.03em; text-transform:uppercase}
+  .col .hint{color:var(--muted); font-size:12px; margin-bottom:8px}
+  .cards{display:flex; flex-direction:column; gap:8px; max-height:280px; overflow:auto}
+  .card{background:#0f172a; border:1px solid #1f2937; border-radius:10px; padding:8px 10px; cursor:pointer}
+  .card:hover{border-color:#334155}
+  .routeLine{display:flex; align-items:center; gap:6px; font-weight:800}
+  .day{font-size:11px; color:#94a3b8}
+  .dir{font-size:11px; background:#0b1220; border:1px solid var(--line); color:#cbd5e1; padding:2px 6px; border-radius:999px}
+  .stat{font-size:11px; color:#a5b4fc}
+  /* Table */
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
+  thead th{position:sticky; top:0; backdrop-filter: blur(6px); z-index:3; background:rgba(17,24,39,.9);}
+  th,td{border-bottom:1px solid var(--line); padding:10px 12px; text-align:center}
+  tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
+  td.route, th.route{text-align:left; position:sticky; left:0; background:rgba(17,24,39,.95); z-index:2}
+  .tier{font-weight:900; padding:6px 10px; border-radius:999px; display:inline-block; min-width:64px}
+  .t10{background:rgba(16,185,129,.15); color:var(--good); border:1px solid rgba(16,185,129,.35)}
+  .t15{background:rgba(34,197,94,.15); color:var(--ok); border:1px solid rgba(34,197,94,.35)}
+  .t20{background:rgba(6,182,212,.15); color:var(--mid); border:1px solid rgba(6,182,212,.35)}
+  .t30{background:rgba(245,158,11,.15); color:var(--warn); border:1px solid rgba(245,158,11,.35)}
+  .t60{background:rgba(239,68,68,.15); color:var(--meh); border:1px solid rgba(239,68,68,.35)}
+  .tBig{background:rgba(107,114,128,.15); color:#cbd5e1; border:1px solid rgba(107,114,128,.4)}
+  .badge{background:#0b1220; border:1px solid var(--line); color:#cbd5e1; padding:4px 8px; border-radius:8px; font-size:12px}
+  /* Modal */
+  .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:100}
+  .dialog{background:#0b1220; border:1px solid var(--line); border-radius:16px; width:min(720px,92vw); padding:16px}
+  .dialog h3{margin:0 0 8px}
+  .dialog pre{background:#0f172a; border:1px solid #1f2937; padding:12px; border-radius:8px; max-height:300px; overflow:auto; color:#cbd5e1; font-size:12px}
+  .close{float:right; background:#1f2937; border:1px solid #334155; color:#cbd5e1; border-radius:8px; padding:6px 10px; cursor:pointer}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>GTFS — Least Worst Frequency</h1>
+      <span class="badge">Strict +2 min grace · max 2 events</span>
+    </header>
+
+    <section class="panel">
+      <div class="grid">
+        <div>
+          <label>GTFS ZIP</label>
+          <input id="gtfs" type="file" accept=".zip">
+        </div>
+        <div>
+          <label>Start</label>
+          <input id="t0" type="time" value="07:00">
+        </div>
+        <div>
+          <label>End</label>
+          <input id="t1" type="time" value="22:00">
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="go" class="btn" disabled>Analyze</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="seg" role="tablist" aria-label="Day filter">
+          <button data-day="Weekday" class="active">Weekday</button>
+          <button data-day="Saturday">Saturday</button>
+          <button data-day="Sunday">Sunday</button>
+          <button data-day="All">All</button>
+        </div>
+        <button id="focus15" class="btn">Weekday: 15-min or better</button>
+        <div class="switch">
+          <input id="merge" type="checkbox">
+          <label for="merge">Merge directions per route</label>
+        </div>
+        <div class="search" style="flex:1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path stroke="#9ca3af" stroke-width="2" d="m21 21-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/></svg>
+          <input id="q" placeholder="Search routes…">
+        </div>
+      </div>
+    </section>
+
+    <!-- Kanban Summary -->
+    <section id="kanbanWrap" class="panel" style="display:none">
+      <div class="kanban">
+        <div class="col" data-tier="10"><h3>≤10 min</h3><div class="hint">Frequent+</div><div class="cards"></div></div>
+        <div class="col" data-tier="15"><h3>≤15 min</h3><div class="hint">Frequent</div><div class="cards"></div></div>
+        <div class="col" data-tier="20"><h3>≤20 min</h3><div class="hint">Good</div><div class="cards"></div></div>
+        <div class="col" data-tier="30"><h3>≤30 min</h3><div class="hint">Basic</div><div class="cards"></div></div>
+        <div class="col" data-tier="60"><h3>≤60 min</h3><div class="hint">Infrequent</div><div class="cards"></div></div>
+        <div class="col" data-tier=">60"><h3>&gt;60 min</h3><div class="hint">Sparse</div><div class="cards"></div></div>
+      </div>
+    </section>
+
+    <!-- Details Table -->
+    <section id="tableWrap" class="panel" style="display:none">
+      <div style="overflow:auto; max-height:70vh">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th class="route">Route</th>
+              <th>Dir</th>
+              <th>Day</th>
+              <th>≤10</th><th>11–15</th><th>16–20</th><th>21–30</th><th>31–60</th><th>&gt;60</th>
+              <th>Avg</th>
+              <th>Least‑Worst Tier</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Inspect Modal -->
+  <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="dialog">
+      <button class="close" onclick="closeModal()">Close</button>
+      <h3 id="modalTitle">Headway Details</h3>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+let RAW_ROWS = []; // {route, dir, day, b, avg, tier, hw:[], times:[]}
+const fileEl = document.getElementById('gtfs');
+const btn = document.getElementById('go');
+fileEl.addEventListener('change', e => btn.disabled = !e.target.files[0]);
+btn.addEventListener('click', analyze);
+
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  render();
+}));
+document.getElementById('merge').addEventListener('change', render);
+document.getElementById('q').addEventListener('input', render);
+document.getElementById('focus15').addEventListener('click', () => {
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('active'));
+  document.querySelector('.seg button[data-day="Weekday"]').classList.add('active');
+  document.getElementById('merge').checked = true;
+  document.getElementById('q').value = '';
+  render({focus15:true});
+});
+
+function t2m(s){const p=(s||'').split(':');if(p.length<2)return null;return (+p[0])*60+(+p[1]);}
+function m2t(m){const h=Math.floor(m/60); const mm=String(m%60).padStart(2,'0'); return `${String(h).padStart(2,'0')}:${mm}`;}
+function parseCsv(text){
+  return new Promise(res=>Papa.parse(text,{header:true,skipEmptyLines:true,complete:r=>{
+    const clean=r.data.filter(row=>Object.values(row).some(v=>v&&String(v).trim()!==''));res(clean);
+  }}));
+}
+function bucketCounts(headways){
+  const b={'≤10':0,'11–15':0,'16–20':0,'21–30':0,'31–60':0,'>60':0};
+  for(const h of headways){
+    if(h<=10)b['≤10']++;
+    else if(h<=15)b['11–15']++;
+    else if(h<=20)b['16–20']++;
+    else if(h<=30)b['21–30']++;
+    else if(h<=60)b['31–60']++;
+    else b['>60']++;
+  }
+  return b;
+}
+function leastWorstTier(headways){
+  const tiers=[10,15,20,30,60,Infinity];
+  const GRACE=2, MAX_GRACE_COUNT=2;
+  for(const T of tiers){
+    if(T===Infinity) return '>60';
+    let graceCount=0; let fail=false;
+    for(const h of headways){
+      if(h<=T) continue;
+      if(h<=T+GRACE){
+        graceCount++;
+        if(graceCount>MAX_GRACE_COUNT){ fail=true; break; }
+      }else{ fail=true; break; }
+    }
+    if(!fail) return String(T);
+  }
+  return '>60';
+}
+function tierClass(t){
+  if(t==='10') return 't10';
+  if(t==='15') return 't15';
+  if(t==='20') return 't20';
+  if(t==='30') return 't30';
+  if(t==='60') return 't60';
+  return 'tBig';
+}
+
+async function analyze(){
+  const file=fileEl.files[0]; if(!file) return;
+  const t0=t2m(document.getElementById('t0').value);
+  const t1=t2m(document.getElementById('t1').value);
+
+  const zip=await JSZip.loadAsync(file);
+  const need=['routes.txt','trips.txt','stop_times.txt','calendar.txt'];
+  for(const n of need){ if(!zip.file(n)) { alert(n+' missing'); return; } }
+
+  const [routes,trips,stopTimes,calendar]=await Promise.all([
+    parseCsv(await zip.file('routes.txt').async('text')),
+    parseCsv(await zip.file('trips.txt').async('text')),
+    parseCsv(await zip.file('stop_times.txt').async('text')),
+    parseCsv(await zip.file('calendar.txt').async('text')),
+  ]);
+
+  const routeById={}; for(const r of routes){ if(r.route_id) routeById[r.route_id]=r; }
+  const calByService={}; for(const c of calendar){ if(c.service_id) calByService[c.service_id]=c; }
+
+  // origin departure per trip
+  const originForTrip=new Map();
+  {
+    const earliest=new Map();
+    for(const st of stopTimes){
+      const tid=st.trip_id; if(!tid) continue;
+      const seq=parseInt(st.stop_sequence||'0',10);
+      const prev=earliest.get(tid);
+      if(!prev || seq<prev.seq) earliest.set(tid,{seq,row:st});
+    }
+    for(const [tid,obj] of earliest.entries()){
+      const r=obj.row;
+      const dep=(r.departure_time&&r.departure_time.trim())?r.departure_time:r.arrival_time;
+      const m=t2m(dep);
+      if(m!=null) originForTrip.set(tid,m);
+    }
+  }
+
+  function tripsForDay(day){
+    return trips.filter(tr=>{
+      const c=calByService[tr.service_id];
+      if(!c) return false;
+      if(day==='Weekday') return ['monday','tuesday','wednesday','thursday','friday'].some(d=>c[d]==='1');
+      if(day==='Saturday') return c['saturday']==='1';
+      if(day==='Sunday') return c['sunday']==='1';
+      return false;
+    });
+  }
+
+  const days=['Weekday','Saturday','Sunday'];
+  const rows=[];
+
+  for(const day of days){
+    const dayTrips=tripsForDay(day);
+    const map=new Map();
+    for(const tr of dayTrips){
+      const dir=(tr.direction_id!==undefined && tr.direction_id!=='' && tr.direction_id!==null)? tr.direction_id : '0';
+      const key=`${tr.route_id}::${dir}`;
+      if(!map.has(key)) map.set(key,[]);
+      map.get(key).push(tr.trip_id);
+    }
+
+    for(const [key,tripIds] of map.entries()){
+      const [route_id,dir]=key.split('::');
+      const rt=routeById[route_id]||{};
+      const rname=rt.route_short_name||rt.route_long_name||route_id;
+
+      const times=[];
+      for(const tid of tripIds){
+        const m=originForTrip.get(tid);
+        if(m==null) continue;
+        if(m<t0 || m>t1) continue; // inclusive
+        times.push(m);
+      }
+      if(times.length<2) continue;
+      times.sort((a,b)=>a-b);
+
+      const gaps=[];
+      for(let i=1;i<times.length;i++){
+        const h=times[i]-times[i-1];
+        if(h>=5 && h<=240) gaps.push(h);
+      }
+      if(gaps.length===0) continue;
+
+      const b=bucketCounts(gaps);
+      const avg=Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length);
+      const tier=leastWorstTier(gaps);
+
+      rows.push({route:rname, dir, day, b, avg, tier, hw:gaps, times:times});
+    }
+  }
+
+  RAW_ROWS = rows;
+  render();
+  document.getElementById('kanbanWrap').style.display='block';
+  document.getElementById('tableWrap').style.display='block';
+}
+
+function render(opts={}){
+  const activeDay = document.querySelector('.seg button.active')?.dataset.day || 'Weekday';
+  const merge = document.getElementById('merge').checked;
+  const q = (document.getElementById('q').value||'').toLowerCase();
+  const focus15 = opts.focus15 === true;
+
+  let rows = RAW_ROWS.filter(r => (activeDay==='All' ? true : r.day===activeDay));
+  if(q) rows = rows.filter(r => (''+r.route).toLowerCase().includes(q));
+  if(focus15) rows = rows.filter(r => r.day==='Weekday' && (r.tier==='10'||r.tier==='15'));
+
+  // MERGE (route+day) with real headways
+  if(merge){
+    const m = new Map();
+    for(const r of rows){
+      const key = `${r.route}::${r.day}`;
+      if(!m.has(key)) m.set(key,{route:r.route, day:r.day, dir:'—', hw:[], times:[]});
+      const obj=m.get(key);
+      obj.hw = obj.hw.concat(r.hw);
+      obj.times = obj.times.concat(r.times);
+    }
+    rows = [];
+    for(const [,v] of m.entries()){
+      // Recompute counts/tier/avg from actual headways
+      v.hw.sort((a,b)=>a-b);
+      const b = bucketCounts(v.hw);
+      const avg = v.hw.length ? Math.round(v.hw.reduce((a,b)=>a+b,0)/v.hw.length) : 0;
+      const tier = leastWorstTier(v.hw);
+      rows.push({route:v.route, dir:'—', day:v.day, b, avg, tier, hw:v.hw, times:v.times.sort((a,b)=>a-b)});
+    }
+  }
+
+  // Sort for display
+  rows.sort((a,b)=>{
+    if(a.route!==b.route) return (''+a.route).localeCompare(''+b.route,undefined,{numeric:true});
+    const order={'Weekday':0,'Saturday':1,'Sunday':2};
+    if(a.day!==b.day) return (order[a.day]??9)-(order[b.day]??9);
+    return (''+a.dir).localeCompare(''+b.dir);
+  });
+
+  // Populate KANBAN (now respects merge)
+  document.querySelectorAll('.col .cards').forEach(c=>c.innerHTML='');
+  const buckets = {'10':[], '15':[], '20':[], '30':[], '60':[], '>60':[]};
+  for(const r of rows) buckets[r.tier]?.push(r);
+  for(const key of Object.keys(buckets)){
+    const container = document.querySelector(`.col[data-tier="${key}"] .cards`);
+    const items = buckets[key];
+    items.sort((a,b)=>(''+a.route).localeCompare(''+b.route,undefined,{numeric:true}));
+    for(const it of items){
+      const div = document.createElement('div');
+      div.className='card';
+      div.dataset.route=it.route; div.dataset.day=it.day; div.dataset.dir=it.dir;
+      div.innerHTML = `
+        <div class="routeLine">
+          <span>${it.route}</span>
+          <span class="dir">${it.dir}</span>
+        </div>
+        <div class="day">${it.day}</div>
+        <div class="stat">avg ${it.avg} • ≤10:${it.b['≤10']} • 11–15:${it.b['11–15']}</div>
+      `;
+      div.addEventListener('click', ()=>{
+        openModal(it);
+      });
+      container.appendChild(div);
+    }
+  }
+
+  // Details table
+  const tbody=document.querySelector('#tbl tbody');
+  tbody.innerHTML='';
+  for(const r of rows){
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td class="route">${r.route}</td>
+      <td>${r.dir}</td>
+      <td>${r.day}</td>
+      <td>${r.b['≤10']}</td>
+      <td>${r.b['11–15']}</td>
+      <td>${r.b['16–20']}</td>
+      <td>${r.b['21–30']}</td>
+      <td>${r.b['31–60']}</td>
+      <td>${r.b['>60']}</td>
+      <td>${r.avg}</td>
+      <td><span class="tier ${tierClass(r.tier)}">${r.tier==='>60' ? '&gt;60' : r.tier} min</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// Modal helpers
+function openModal(r){
+  const modal = document.getElementById('modal');
+  modal.style.display='flex';
+  const topGaps = [...r.hw].sort((a,b)=>b-a).slice(0,10);
+  const departures = r.times.slice(0,20).map(m2t).join(', ');
+  document.getElementById('modalTitle').textContent = `Details — Route ${r.route} (${r.day}${r.dir==='—'?'':', dir '+r.dir})`;
+  document.getElementById('modalBody').innerHTML = `
+    <p><strong>Least‑Worst Tier:</strong> ${r.tier==='>60'?'&gt;60':r.tier} min, <strong>Avg:</strong> ${r.avg} min</p>
+    <p><strong>Top 10 largest gaps (min):</strong> ${topGaps.join(', ')}</p>
+    <p class="muted">Sample origin departures (hh:mm): ${departures}${r.times.length>20?' …':''}</p>
+    <pre>${JSON.stringify(r.b,null,2)}</pre>
+  `;
+}
+function closeModal(){ document.getElementById('modal').style.display='none'; }
+</script>
+</body>
+</html>
