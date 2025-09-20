@@ -339,7 +339,7 @@ function render(opts={}){
     const m = new Map();
     for(const r of rows){
       const key = `${r.route}::${r.day}`;
-      if(!m.has(key)) m.set(key,{route:r.route, day:r.day, dir:'—', hw:[], times:[]});
+      if(!m.has(key)) m.set(key,{route:r.route, day:r.day, dir:'–', hw:[], times:[]});
       const obj=m.get(key);
       obj.hw = obj.hw.concat(r.hw);
       obj.times = obj.times.concat(r.times);
@@ -351,7 +351,7 @@ function render(opts={}){
       const b = bucketCounts(v.hw);
       const avg = v.hw.length ? Math.round(v.hw.reduce((a,b)=>a+b,0)/v.hw.length) : 0;
       const tier = leastWorstTier(v.hw);
-      rows.push({route:v.route, dir:'—', day:v.day, b, avg, tier, hw:v.hw, times:v.times.sort((a,b)=>a-b)});
+      rows.push({route:v.route, dir:'–', day:v.day, b, avg, tier, hw:v.hw, times:v.times.sort((a,b)=>a-b)});
     }
   }
 
@@ -378,7 +378,7 @@ function render(opts={}){
       div.innerHTML = `
         <div class="routeLine">
           <span>${it.route}</span>
-          <span class="dir">${it.dir}</span>
+          <span class="dir">${directionLabel(it.dir)}</span>
         </div>
         <div class="day">${it.day}</div>
         <div class="stat">avg ${it.avg} • ≤10:${it.b['≤10']} • 11–15:${it.b['11–15']}</div>
@@ -397,7 +397,7 @@ function render(opts={}){
     const tr=document.createElement('tr');
     tr.innerHTML = `
       <td class="route">${r.route}</td>
-      <td>${r.dir}</td>
+      <td>${directionLabel(r.dir)}</td>
       <td>${r.day}</td>
       <td>${r.b['≤10']}</td>
       <td>${r.b['11–15']}</td>
@@ -412,13 +412,23 @@ function render(opts={}){
   }
 }
 
+function directionLabel(dir){
+  const val = dir==null ? '' : String(dir);
+  if(val==='–' || val==='—') return '–';
+  if(val==='0') return 'Outbound';
+  if(val==='1') return 'Inbound';
+  return val;
+}
+
 // Modal helpers
 function openModal(r){
   const modal = document.getElementById('modal');
   modal.style.display='flex';
   const topGaps = [...r.hw].sort((a,b)=>b-a).slice(0,10);
   const departures = r.times.slice(0,20).map(m2t).join(', ');
-  document.getElementById('modalTitle').textContent = `Details — Route ${r.route} (${r.day}${r.dir==='—'?'':', dir '+r.dir})`;
+  const dirLabel = directionLabel(r.dir);
+  const dirText = dirLabel && dirLabel!=='–' ? `, dir ${dirLabel}` : '';
+  document.getElementById('modalTitle').textContent = `Details — Route ${r.route} (${r.day}${dirText})`;
   document.getElementById('modalBody').innerHTML = `
     <p><strong>Least‑Worst Tier:</strong> ${r.tier==='>60'?'&gt;60':r.tier} min, <strong>Avg:</strong> ${r.avg} min</p>
     <p><strong>Top 10 largest gaps (min):</strong> ${topGaps.join(', ')}</p>
