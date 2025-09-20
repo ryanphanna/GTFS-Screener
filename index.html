@@ -477,10 +477,10 @@ function render(opts={}){
 
   let rows = RAW_ROWS.filter(r => (activeDay==='All' ? true : r.day===activeDay));
   if(q) rows = rows.filter(r => (''+r.route).toLowerCase().includes(q));
-  if(focus15) rows = rows.filter(r => r.day==='Weekday' && (r.tier==='10'||r.tier==='15'));
+  if(focus15) rows = rows.filter(r => r.day==='Weekday');
 
   let displayRows = merge ? mergeRows(rows) : rows.map(cloneRow);
-  if(merge && focus15){
+  if(focus15){
     displayRows = displayRows.filter(r => r.tier==='10'||r.tier==='15');
   }
 
