@@ -523,11 +523,16 @@ function render(opts={}){
 
   let rows = RAW_ROWS.filter(r => (activeDay==='All' ? true : r.day===activeDay));
   if(q) rows = rows.filter(r => (''+r.route).toLowerCase().includes(q));
+  // Focus button narrows to Weekday; tier filter applied after merge to keep banner/kanban logic consistent
   if(focus15) rows = rows.filter(r => r.day==='Weekday');
 
+  // Use shared merge helper (real headways, not midpoints)
   let displayRows = merge ? mergeRows(rows) : rows.map(cloneRow);
+
+  // If focus15, keep only 10/15 tiers after merging
   if(focus15){
-    displayRows = displayRows.filter(r => r.tier==='10'||r.tier==='15');
+    displayRows = displayRows.filter(r => r.tier==='10' || r.tier==='15');
+  }
   }
 
   displayRows.sort((a,b)=>{
@@ -602,20 +607,20 @@ function directionLabel(dir){
   return val;
 }
 
+// Frequent banner + details helpers + modal (merged)
 function updateFrequentBanner(){
   const banner=document.getElementById('frequentBanner');
   const pills=document.getElementById('bannerPills');
   const empty=document.getElementById('bannerEmpty');
-  if(!RAW_ROWS.length){
-    banner.style.display='none';
-    return;
-  }
+  if(!RAW_ROWS.length){ banner.style.display='none'; return; }
+
   const start=document.getElementById('t0').value||'07:00';
   const end=document.getElementById('t1').value||'22:00';
   document.getElementById('bannerTitle').textContent=`Weekday ≤15 min (${start}–${end})`;
 
+  // Use merged (route+day) classification for the banner
   const weekdayRows = RAW_ROWS.filter(r=>r.day==='Weekday');
-  const merged = mergeRows(weekdayRows);
+  const merged = mergeRows(weekdayRows); // uses real headways
   const frequent = merged.filter(r=>r.tier==='10' || r.tier==='15');
 
   pills.innerHTML='';
@@ -642,16 +647,13 @@ function scrollToRoute(route){
     weekdayButton.classList.add('active');
   }
   const searchInput=document.getElementById('q');
-  if(searchInput.value){
-    searchInput.value='';
-  }
+  if(searchInput.value){ searchInput.value=''; }
   render();
   requestAnimationFrame(()=>{
     const rows=[...document.querySelectorAll('#tbl tbody tr')].filter(tr=>tr.dataset.route===route && tr.dataset.day==='Weekday');
     if(rows.length){
       const target=rows[0];
-      target.classList.remove('highlight');
-      void target.offsetWidth;
+      target.classList.remove('highlight'); void target.offsetWidth;
       target.classList.add('highlight');
       target.scrollIntoView({behavior:'smooth',block:'center'});
     }
@@ -662,90 +664,63 @@ function computeMedian(hw){
   if(!hw.length) return 0;
   const sorted=[...hw].sort((a,b)=>a-b);
   const mid=Math.floor(sorted.length/2);
-  if(sorted.length%2===1) return sorted[mid];
-  return (sorted[mid-1]+sorted[mid])/2;
+  return (sorted.length%2===1) ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
 }
 function computeMode(hw){
   if(!hw.length) return 0;
   const counts=new Map();
-  for(const h of hw){
-    counts.set(h,(counts.get(h)||0)+1);
-  }
-  let best=hw[0]; let bestCount=0;
-  for(const [value,count] of counts.entries()){
-    if(count>bestCount || (count===bestCount && value<best)){
-      best=value; bestCount=count;
-    }
+  for(const h of hw) counts.set(h,(counts.get(h)||0)+1);
+  let best=hw[0], bestCount=0;
+  for(const [val,c] of counts.entries()){
+    if(c>bestCount || (c===bestCount && val<best)){ best=val; bestCount=c; }
   }
   return best;
 }
-function formatMinutes(val){
-  if(Number.isInteger(val)) return `${val} min`;
-  return `${Math.round(val*10)/10} min`;
-}
-function formatGroupedGaps(hw){
-  const sorted=[...hw].sort((a,b)=>b-a).slice(0,10);
-  const counts=new Map();
-  for(const h of sorted){
-    counts.set(h,(counts.get(h)||0)+1);
-  }
-  return [...counts.entries()].sort((a,b)=>b[0]-a[0]).map(([gap,count])=>`${gap} min (×${count})`);
-}
-function uniqueTimes(times){
-  const seen=new Set();
-  const list=[];
-  for(const t of times){
-    if(!seen.has(t)){
-      seen.add(t);
-      list.push(t);
-    }
-  }
-  return list;
-}
+function formatMinutes(val){ return Number.isInteger(val) ? `${val} min` : `${Math.round(val*10)/10} min`; }
 
-function getDirDetails(route, day){
-  const key=`${route}::${day}`;
-  return cloneDirDetails(ROUTE_DAY_LOOKUP.get(key));
+function formatGroupedGaps(hw){
+  const top=[...hw].sort((a,b)=>b-a).slice(0,10);
+  const m=new Map();
+  for(const h of top) m.set(h,(m.get(h)||0)+1);
+  return [...m.entries()].sort((a,b)=>b[0]-a[0]).map(([gap,count])=>`${gap} min (×${count})`);
 }
 
 function tierThreshold(tier){
   const n=parseInt(tier,10);
   return Number.isFinite(n) ? n : Infinity;
 }
-
 function gapHighlightClass(gap, tier){
-  const threshold=tierThreshold(tier);
-  if(!Number.isFinite(threshold)) return '';
-  if(gap>threshold+2) return 'gapHigh';
-  if(gap>threshold) return 'gapWarn';
+  const T=tierThreshold(tier);
+  if(!Number.isFinite(T)) return '';
+  if(gap>T+2) return 'gapHigh';
+  if(gap>T)   return 'gapWarn';
   return '';
 }
-
 function renderGapCell(gap, tier){
   if(gap==null) return '—';
   const cls=gapHighlightClass(gap, tier);
-  const classes=['gapBadge'];
-  if(cls) classes.push(cls);
+  const classes=['gapBadge']; if(cls) classes.push(cls);
   return `<span class="${classes.join(' ')}">${gap}</span>`;
 }
 
+// Build per-direction departures table
 function buildDepartureTable(label, detail){
-  const times=detail?.times || [];
+  const times=(detail?.times||[]).slice().sort((a,b)=>a-b);
+  // dedupe identical times within the same direction
+  const uniq=[]; for(const t of times){ if(!uniq.length || uniq[uniq.length-1]!==t) uniq.push(t); }
   const tier=detail?.tier ?? null;
+
   let rows='';
-  if(times.length){
-    const parts=[];
-    for(let i=0;i<times.length;i++){
-      const timeStr=m2t(times[i]);
+  if(uniq.length){
+    for(let i=0;i<uniq.length;i++){
+      const timeStr=m2t(uniq[i]);
       if(i===0){
-        parts.push(`<tr><td class="numCol">${i+1}</td><td>${timeStr}</td><td>—</td></tr>`);
+        rows+=`<tr><td class="numCol">${i+1}</td><td>${timeStr}</td><td>—</td></tr>`;
       }else{
-        const gap=Math.round(times[i]-times[i-1]);
-        const gapCell=renderGapCell(gap, tier);
-        parts.push(`<tr><td class="numCol">${i+1}</td><td>${timeStr}</td><td>${gapCell}</td></tr>`);
+        const gap=Math.round(uniq[i]-uniq[i-1]);
+        rows+=`<tr><td class="numCol">${i+1}</td><td>${timeStr}</td><td>${renderGapCell(gap,tier)}</td></tr>`;
       }
     }
-    rows=parts.join('');
   }else{
     rows=`<tr><td colspan="3" class="muted">No departures in window</td></tr>`;
   }
@@ -754,33 +729,57 @@ function buildDepartureTable(label, detail){
 
 function buildDeparturesSection(dirDetails, merge){
   const layoutClass=merge ? 'stack' : 'twoCols';
-  const outboundLabel=directionLabel('0')==='–' ? 'Outbound' : directionLabel('0');
-  const inboundLabel=directionLabel('1')==='–' ? 'Inbound' : directionLabel('1');
+  const outboundLabel = directionLabel('0')==='–' ? 'Outbound' : directionLabel('0');
+  const inboundLabel  = directionLabel('1')==='–' ? 'Inbound'  : directionLabel('1');
   const outbound=buildDepartureTable(outboundLabel, dirDetails?.['0']);
-  const inbound=buildDepartureTable(inboundLabel, dirDetails?.['1']);
+  const inbound=buildDepartureTable(inboundLabel,  dirDetails?.['1']);
   return `<div class="departuresSection"><h4>Departures &amp; Gaps</h4><div class="gapTables ${layoutClass}">${outbound}${inbound}</div></div>`;
 }
+
+// Modal
 function openModal(r){
   const modal = document.getElementById('modal');
   modal.style.display='flex';
+
   const dirLabel = directionLabel(r.dir);
-  const dirText = dirLabel && dirLabel!=='–' ? `, ${dirLabel}` : '';
+  const dirText  = dirLabel && dirLabel!=='–' ? `, ${dirLabel}` : '';
   document.getElementById('modalTitle').textContent = `Details — Route ${r.route} (${r.day}${dirText})`;
 
+  // Stats
   const median = computeMedian(r.hw);
-  const mode = computeMode(r.hw);
-  const avg = r.hw.length ? Math.round(r.hw.reduce((a,b)=>a+b,0)/r.hw.length) : r.avg;
+  const mode   = computeMode(r.hw);
+  const avg    = r.hw.length ? Math.round(r.hw.reduce((a,b)=>a+b,0)/r.hw.length) : r.avg;
+
+  // Grouped top gaps
   const gapGroups = formatGroupedGaps(r.hw);
+  const gapHtml   = gapGroups.length ? gapGroups.map(g=>`<span class="chip">${g}</span>`).join(' ')
+                                     : '<span class="muted">Not enough data</span>';
+
+  // Bucket mini-table
   const bucketOrder=['≤10','11–15','16–20','21–30','31–60','>60'];
-
-  const merge = document.getElementById('merge').checked;
-  const dirDetails = r.dirDetails || getDirDetails(r.route, r.day);
-  const departuresSection = buildDeparturesSection(dirDetails, merge);
-
-  const gapHtml = gapGroups.length ? gapGroups.map(g=>`<span class="chip">${g}</span>`).join(' ') : '<span class="muted">Not enough data</span>';
-
   const bucketHtml = bucketOrder.map(label=>`<tr><td>${label}</td><td>${r.b[label]}</td></tr>`).join('');
 
+  // Departures & gaps (per direction, even when merged visually)
+  const mergeChecked = document.getElementById('merge').checked;
+  // dirDetails shaped like { '0': {times:[...], tier:'..'}, '1': {...} }
+  const dirDetails   = r.dirDetails || getDirDetails(r.route, r.day);
+  const departuresSection = buildDeparturesSection(dirDetails, mergeChecked);
+
+  // Render modal body
+  const body = document.getElementById('modalBody');
+  body.innerHTML = `
+    <p><strong>Least-Worst Tier:</strong> ${r.tier==='>60'?'&gt;60':r.tier} min,
+       <strong>Median:</strong> ${formatMinutes(median)},
+       <strong>Mode:</strong> ${formatMinutes(mode)},
+       <span class="muted">Avg: ${formatMinutes(avg)}</span>
+    </p>
+    <p><strong>Top gaps:</strong> ${gapHtml}</p>
+    ${departuresSection}
+    <div class="miniBuckets">
+      <table class="miniBucket"><thead><tr><th>Bucket</th><th>Count</th></tr></thead><tbody>${bucketHtml}</tbody></table>
+    </div>
+  `;
+}
   document.getElementById('modalBody').innerHTML = `
     <div class="metrics">
       <div class="metricCard">
