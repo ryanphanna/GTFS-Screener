@@ -141,9 +141,23 @@
   .metricSub{font-size:12px;color:var(--muted);margin-top:6px}
   .gapList{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
   .gapList .chip{background:var(--card)}
-  .departures{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
-  .departures h4{margin:0 0 6px;font-size:13px;font-weight:700}
-  .departures p{margin:0;font-size:13px;color:var(--muted);line-height:1.4}
+  .departuresSection{margin-bottom:16px}
+  .departuresSection h4{margin:0 0 10px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .gapTables{display:grid;gap:12px}
+  .gapTables.twoCols{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .gapTables.stack{grid-template-columns:1fr}
+  .gapTableWrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .gapTableWrap h5{margin:0;font-size:13px;font-weight:700}
+  .gapTableScroll{max-height:300px;overflow:auto;border-radius:8px;border:1px solid var(--line)}
+  .gapTable{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+  .gapTable th,.gapTable td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+  .gapTable thead th{background:var(--panel);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-size:11px;position:sticky;top:0;z-index:1}
+  .gapTable tbody tr:nth-child(odd){background:var(--tableStripe)}
+  .gapTable tbody tr:last-child td{border-bottom:none}
+  .gapTable td.numCol{width:42px}
+  .gapBadge{display:inline-block;min-width:44px;padding:4px 8px;border-radius:6px;text-align:center;font-variant-numeric:tabular-nums;border:1px solid transparent}
+  .gapWarn{box-shadow:inset 0 0 0 1px var(--warn);color:var(--warn);background:rgba(245,158,11,.1)}
+  .gapHigh{background:rgba(239,68,68,.22);color:var(--meh);box-shadow:inset 0 0 0 1px rgba(239,68,68,.4);font-weight:700}
   .modalBuckets{width:100%;border-collapse:separate;border-spacing:0;margin-bottom:0}
   .modalBuckets th,.modalBuckets td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:13px}
   .modalBuckets th{color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:11px}
@@ -271,6 +285,7 @@
 
 <script>
 let RAW_ROWS = []; // {route, dir, day, b, avg, tier, hw:[], times:[]}
+let ROUTE_DAY_LOOKUP = new Map();
 const fileEl = document.getElementById('gtfs');
 const btn = document.getElementById('go');
 fileEl.addEventListener('change', e => btn.disabled = !e.target.files[0]);
@@ -397,6 +412,7 @@ async function analyze(){
 
   const days=['Weekday','Saturday','Sunday'];
   const rows=[];
+  const routeDayData=new Map();
 
   for(const day of days){
     const dayTrips=tripsForDay(day);
@@ -422,10 +438,12 @@ async function analyze(){
       }
       if(times.length<2) continue;
       times.sort((a,b)=>a-b);
+      const dedupTimes=uniqueTimes(times);
+      if(dedupTimes.length<2) continue;
 
       const gaps=[];
-      for(let i=1;i<times.length;i++){
-        const h=times[i]-times[i-1];
+      for(let i=1;i<dedupTimes.length;i++){
+        const h=dedupTimes[i]-dedupTimes[i-1];
         if(h>=5 && h<=240) gaps.push(h);
       }
       if(gaps.length===0) continue;
@@ -434,18 +452,45 @@ async function analyze(){
       const avg=Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length);
       const tier=leastWorstTier(gaps);
 
-      rows.push({route:rname, dir, day, b, avg, tier, hw:gaps, times:times});
+      rows.push({route:rname, dir, day, b, avg, tier, hw:gaps, times:dedupTimes});
+
+      const routeDayKey=`${rname}::${day}`;
+      if(!routeDayData.has(routeDayKey)) routeDayData.set(routeDayKey,{});
+      const perDir=routeDayData.get(routeDayKey);
+      perDir[dir]={times:[...dedupTimes], tier};
     }
   }
 
+  for(const row of rows){
+    const key=`${row.route}::${row.day}`;
+    row.dirDetails=cloneDirDetails(routeDayData.get(key));
+  }
+
   RAW_ROWS = rows;
+  ROUTE_DAY_LOOKUP=new Map(routeDayData);
   render();
   document.getElementById('kanbanWrap').style.display='block';
   document.getElementById('tableWrap').style.display='block';
 }
 
 function cloneRow(row){
-  return {route:row.route, dir:String(row.dir), day:row.day, b:{...row.b}, avg:row.avg, tier:row.tier, hw:[...row.hw], times:[...row.times]};
+  return {route:row.route, dir:String(row.dir), day:row.day, b:{...row.b}, avg:row.avg, tier:row.tier, hw:[...row.hw], times:[...row.times], dirDetails:cloneDirDetails(row.dirDetails)};
+}
+
+function cloneDirDetails(details){
+  const keys=new Set(['0','1']);
+  if(details){
+    Object.keys(details).forEach(k=>keys.add(k));
+  }
+  const result={};
+  for(const key of keys){
+    const src=details?.[key];
+    result[key]={
+      times:src?.times ? [...src.times] : [],
+      tier:src?.tier ?? null
+    };
+  }
+  return result;
 }
 
 function mergeRows(rows){
@@ -458,13 +503,14 @@ function mergeRows(rows){
     obj.times.push(...r.times);
   }
   const merged=[];
-  for(const [,obj] of m.entries()){
-    obj.hw.sort((a,b)=>a-b);
-    obj.times.sort((a,b)=>a-b);
-    const b=bucketCounts(obj.hw);
-    const avg=obj.hw.length ? Math.round(obj.hw.reduce((a,b)=>a+b,0)/obj.hw.length) : 0;
-    const tier=leastWorstTier(obj.hw);
-    merged.push({route:obj.route, dir:'–', day:obj.day, b, avg, tier, hw:obj.hw, times:obj.times});
+  for(const [key,obj] of m.entries()){
+    const hwList=[...obj.hw].sort((a,b)=>a-b);
+    const timeList=uniqueTimes(obj.times.sort((a,b)=>a-b));
+    const b=bucketCounts(hwList);
+    const avg=hwList.length ? Math.round(hwList.reduce((a,b)=>a+b,0)/hwList.length) : 0;
+    const tier=leastWorstTier(hwList);
+    const dirDetails=cloneDirDetails(ROUTE_DAY_LOOKUP.get(key));
+    merged.push({route:obj.route, dir:'–', day:obj.day, b, avg, tier, hw:hwList, times:timeList, dirDetails});
   }
   return merged;
 }
@@ -656,21 +702,64 @@ function uniqueTimes(times){
   }
   return list;
 }
-function timesByDirection(route, day){
-  const result={'0':[], '1':[]};
-  for(const row of RAW_ROWS){
-    if(row.route===route && row.day===day){
-      const dir=String(row.dir);
-      if(!result[dir]) result[dir]=[];
-      result[dir]=result[dir].concat(row.times);
-    }
-  }
-  for(const key of Object.keys(result)){
-    result[key]=uniqueTimes(result[key].sort((a,b)=>a-b));
-  }
-  return result;
+
+function getDirDetails(route, day){
+  const key=`${route}::${day}`;
+  return cloneDirDetails(ROUTE_DAY_LOOKUP.get(key));
 }
 
+function tierThreshold(tier){
+  const n=parseInt(tier,10);
+  return Number.isFinite(n) ? n : Infinity;
+}
+
+function gapHighlightClass(gap, tier){
+  const threshold=tierThreshold(tier);
+  if(!Number.isFinite(threshold)) return '';
+  if(gap>threshold+2) return 'gapHigh';
+  if(gap>threshold) return 'gapWarn';
+  return '';
+}
+
+function renderGapCell(gap, tier){
+  if(gap==null) return '—';
+  const cls=gapHighlightClass(gap, tier);
+  const classes=['gapBadge'];
+  if(cls) classes.push(cls);
+  return `<span class="${classes.join(' ')}">${gap}</span>`;
+}
+
+function buildDepartureTable(label, detail){
+  const times=detail?.times || [];
+  const tier=detail?.tier ?? null;
+  let rows='';
+  if(times.length){
+    const parts=[];
+    for(let i=0;i<times.length;i++){
+      const timeStr=m2t(times[i]);
+      if(i===0){
+        parts.push(`<tr><td class="numCol">${i+1}</td><td>${timeStr}</td><td>—</td></tr>`);
+      }else{
+        const gap=Math.round(times[i]-times[i-1]);
+        const gapCell=renderGapCell(gap, tier);
+        parts.push(`<tr><td class="numCol">${i+1}</td><td>${timeStr}</td><td>${gapCell}</td></tr>`);
+      }
+    }
+    rows=parts.join('');
+  }else{
+    rows=`<tr><td colspan="3" class="muted">No departures in window</td></tr>`;
+  }
+  return `<div class="gapTableWrap"><h5>${label}</h5><div class="gapTableScroll"><table class="gapTable"><thead><tr><th>#</th><th>Time</th><th>Gap</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
+function buildDeparturesSection(dirDetails, merge){
+  const layoutClass=merge ? 'stack' : 'twoCols';
+  const outboundLabel=directionLabel('0')==='–' ? 'Outbound' : directionLabel('0');
+  const inboundLabel=directionLabel('1')==='–' ? 'Inbound' : directionLabel('1');
+  const outbound=buildDepartureTable(outboundLabel, dirDetails?.['0']);
+  const inbound=buildDepartureTable(inboundLabel, dirDetails?.['1']);
+  return `<div class="departuresSection"><h4>Departures &amp; Gaps</h4><div class="gapTables ${layoutClass}">${outbound}${inbound}</div></div>`;
+}
 function openModal(r){
   const modal = document.getElementById('modal');
   modal.style.display='flex';
@@ -685,25 +774,8 @@ function openModal(r){
   const bucketOrder=['≤10','11–15','16–20','21–30','31–60','>60'];
 
   const merge = document.getElementById('merge').checked;
-  let departuresHtml='';
-  if(merge){
-    const dedup=uniqueTimes(r.times);
-    const sample=dedup.slice(0,20).map(m2t).join(', ');
-    const more=dedup.length>20 ? ' …' : '';
-    departuresHtml=`<div><h4>All directions</h4><p>${sample||'—'}${more}</p></div>`;
-  }else{
-    const timesDir=timesByDirection(r.route,r.day);
-    const outbound=timesDir['0']||[];
-    const inbound=timesDir['1']||[];
-    const outboundSample=outbound.slice(0,20).map(m2t).join(', ');
-    const inboundSample=inbound.slice(0,20).map(m2t).join(', ');
-    const outboundMore=outbound.length>20?' …':'';
-    const inboundMore=inbound.length>20?' …':'';
-    departuresHtml=`
-      <div><h4>Outbound</h4><p>${outboundSample||'—'}${outboundMore}</p></div>
-      <div><h4>Inbound</h4><p>${inboundSample||'—'}${inboundMore}</p></div>
-    `;
-  }
+  const dirDetails = r.dirDetails || getDirDetails(r.route, r.day);
+  const departuresSection = buildDeparturesSection(dirDetails, merge);
 
   const gapHtml = gapGroups.length ? gapGroups.map(g=>`<span class="chip">${g}</span>`).join(' ') : '<span class="muted">Not enough data</span>';
 
@@ -729,7 +801,7 @@ function openModal(r){
       <p><strong>Top gaps:</strong></p>
       <div class="gapList">${gapHtml}</div>
     </div>
-    <div class="departures">${departuresHtml}</div>
+    ${departuresSection}
     <table class="modalBuckets">
       <thead><tr><th>Bucket</th><th>Count</th></tr></thead>
       <tbody>${bucketHtml}</tbody>
