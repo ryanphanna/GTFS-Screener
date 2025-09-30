@@ -797,7 +797,7 @@
     groups.slice(0,10).forEach(item => {
       const div = document.createElement('div');
       div.className = 'chip';
-      div.textContent = `${item.gap} (×${item.count})`;
+      div.textContent = `${item.gap} min (×${item.count})`;
       gapList.appendChild(div);
     });
 
@@ -831,7 +831,7 @@
       const table = document.createElement('table');
       table.className = 'gapTable';
       const thead = document.createElement('thead');
-      thead.innerHTML = '<tr><th>#</th><th>Time</th><th>Gap since previous</th></tr>';
+      thead.innerHTML = '<tr><th>#</th><th>Time</th><th>Gap since previous (min)</th></tr>';
       table.appendChild(thead);
       const tbody = document.createElement('tbody');
       deduped.forEach((time,idx) => {
