@@ -3,221 +3,154 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GTFS — Least Worst Frequency (Kanban v2)</title>
+<title>GTFS — Least Worst Frequency</title>
 <style>
   :root{
-    --bg:#0b1220;
-    --bgGradient:radial-gradient(1200px 600px at 10% 0%, #0e172a 0%, #0b1220 50%, #090f1b 100%);
-    --panel:#111827;
-    --muted:#9ca3af;
-    --text:#e5e7eb;
-    --line:#1f2937;
-    --chip:#1f2937;
-    --chipText:#cbd5e1;
-    --accent:#60a5fa;
-    --btn:#2563eb;
-    --btnText:#fff;
-    --card:#0f172a;
-    --inputBg:#0b1220;
-    --tableStripe:rgba(255,255,255,.02);
-    --bannerBg:rgba(37,99,235,.12);
-    --highlight:rgba(96,165,250,.25);
-    --modalOverlay:rgba(0,0,0,.6);
-    --good:#10b981;
-    --ok:#22c55e;
-    --mid:#06b6d4;
-    --warn:#f59e0b;
-    --meh:#ef4444;
-    --dark:#374151;
+    --bg:#0b1220; --panel:#111827; --muted:#9ca3af; --text:#e5e7eb; --line:#1f2937;
+    --chip:#1f2937; --chipText:#cbd5e1; --accent:#60a5fa; --btn:#2563eb; --btnText:#fff;
+    --good:#10b981; --ok:#22c55e; --mid:#06b6d4; --warn:#f59e0b; --meh:#ef4444; --dark:#374151;
+    --zebra: rgba(255,255,255,.02);
   }
-  body[data-theme="light"]{
-    --bg:#f5f7fb;
-    --bgGradient:radial-gradient(1200px 600px at 10% 0%, #ffffff 0%, #eef2ff 50%, #e2e8f0 100%);
-    --panel:#ffffff;
-    --muted:#4b5563;
-    --text:#1f2937;
-    --line:#d1d5db;
-    --chip:#e5e7eb;
-    --chipText:#1f2937;
-    --accent:#2563eb;
-    --btn:#2563eb;
-    --btnText:#fff;
-    --card:#f1f5f9;
-    --inputBg:#f8fafc;
-    --tableStripe:rgba(15,23,42,.04);
-    --bannerBg:rgba(37,99,235,.16);
-    --highlight:rgba(59,130,246,.2);
-    --modalOverlay:rgba(15,23,42,.35);
+  .light{
+    --bg:#f8fafc; --panel:#ffffff; --muted:#475569; --text:#0f172a; --line:#e5e7eb;
+    --chip:#f1f5f9; --chipText:#0f172a; --accent:#2563eb; --btn:#111827; --btnText:#fff;
+    --good:#047857; --ok:#15803d; --mid:#0e7490; --warn:#b45309; --meh:#b91c1c; --dark:#111827;
+    --zebra: rgba(0,0,0,.03);
   }
   *{box-sizing:border-box}
   body{
-    font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
-    background:var(--bgGradient);
-    color:var(--text);
-    margin:0;
-    padding:24px;
-    min-height:100vh;
+    font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+    background: radial-gradient(1200px 600px at 10% 0%, #0e172a 0%, var(--bg) 50%, #090f1b 100%);
+    color: var(--text);
+    margin:0; padding:24px; min-height:100vh;
     transition:background .3s ease,color .3s ease;
   }
   .wrap{max-width:1200px;margin:0 auto}
-  header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap}
   h1{font-size:22px;margin:0;font-weight:800;letter-spacing:.2px}
-  .headerActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .themeToggle{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
-  .themeToggle span{font-weight:700;text-transform:uppercase;letter-spacing:.05em}
-  .themeButtons{display:flex;border-radius:12px;overflow:hidden}
-  .themeButtons button{background:transparent;border:0;color:var(--muted);padding:6px 10px;font-weight:700;cursor:pointer;transition:background .2s ease,color .2s ease}
-  .themeButtons button.active{background:var(--btn);color:var(--btnText)}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.25);padding:16px;margin-bottom:16px}
-  .controls{margin-bottom:20px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;align-items:end}
-  .field{display:flex;flex-direction:column;gap:6px}
-  .field.action{justify-content:flex-end}
-  label{font-weight:700;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-  input[type="file"],input[type="time"]{
-    width:100%;padding:10px 12px;border-radius:10px;background:var(--inputBg);border:1px solid var(--line);color:var(--text)
-  }
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow: 0 6px 20px rgba(0,0,0,.15); padding:16px; margin-bottom:16px}
+  .grid{display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:12px; align-items:end}
+  label{font-weight:700; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+  input[type="file"], input[type="time"]{ width:100%; padding:10px 12px; border-radius:10px; background:transparent; border:1px solid var(--line); color:var(--text)}
   input[type="file"]::-webkit-file-upload-button{display:none}
   input[type="file"]::file-selector-button{display:none}
-  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
-  .btn{background:var(--btn);color:var(--btnText);border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;transition:opacity .2s ease,transform .2s ease}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn:not(:disabled):active{transform:translateY(1px)}
-  .chip{background:var(--chip);color:var(--chipText);padding:8px 10px;border-radius:999px;font-size:12px;border:1px solid var(--line)}
-  .seg{display:flex;gap:6px;background:var(--card);border:1px solid var(--line);padding:4px;border-radius:12px}
-  .seg button{background:transparent;color:var(--muted);border:0;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:700}
-  .seg button.active{background:var(--btn);color:#fff}
-  .switch{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight:700}
+  .field{display:flex;flex-direction:column}
+  .field.action{justify-content:flex-end;align-items:flex-end;position:relative}
+  .field.action .btn{position:relative;z-index:2}
+  .fileName{font-size:12px;color:var(--muted);margin-top:4px;word-break:break-word}
+  .toolbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px}
+  .btn{background:var(--btn); color:var(--btnText); border:0; border-radius:10px; padding:10px 14px; font-weight:800; cursor:pointer}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .chip{background:var(--chip); color:var(--chipText); padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid var(--line)}
+  .seg{display:flex; gap:6px; background:transparent; border:1px solid var(--line); padding:4px; border-radius:12px}
+  .seg button{background:transparent; color:var(--muted); border:0; padding:8px 10px; border-radius:8px; cursor:pointer; font-weight:700}
+  .seg button.active{background:var(--btn); color:#fff}
+  .switch{display:flex; gap:8px; align-items:center; color:var(--muted); font-weight:700}
   .switch input{accent-color:var(--accent)}
-  .search{flex:1;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);padding:8px 10px;border-radius:10px}
-  .search input{flex:1;background:transparent;border:0;color:var(--text);outline:none}
-  .banner{display:none}
-  .bannerHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-  .bannerHeader h2{margin:0;font-size:16px;font-weight:800}
-  .bannerHeader .hint{color:var(--muted);font-size:12px}
-  .bannerBody{background:var(--bannerBg);border-radius:12px;padding:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-  .bannerEmpty{color:var(--muted);font-size:13px}
-  .bannerPills{display:flex;flex-wrap:wrap;gap:8px}
-  .bannerPills button{background:var(--btn);color:var(--btnText);border:0;border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;transition:opacity .2s ease}
-  .bannerPills button:hover{opacity:.85}
+  .search{flex:1; display:flex; align-items:center; gap:8px; background:transparent; border:1px solid var(--line); padding:8px 10px; border-radius:10px}
+  .search input{flex:1; background:transparent; border:0; color:var(--text); outline:none}
+
+  /* Banner */
+  #frequentBanner{display:none}
+  #frequentBanner h3{margin:0 0 8px;font-size:14px}
+  #bannerPills{display:flex;flex-wrap:wrap;gap:8px}
+  #bannerPills button{background:#10b981;border:0;color:#fff;font-weight:800;border-radius:999px;padding:6px 10px;cursor:pointer}
+  #bannerEmpty{color:var(--muted);font-size:13px}
+
   /* Kanban */
-  .kanban{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
-  .col{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:120px}
-  .col h3{margin:0 0 8px;font-size:13px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
-  .col .hint{color:var(--muted);font-size:12px;margin-bottom:8px}
-  .cards{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;transition:border-color .2s ease,transform .2s ease}
-  .card:hover{border-color:var(--accent);transform:translateY(-1px)}
-  .routeLine{display:flex;align-items:center;gap:6px;font-weight:800}
-  .day{font-size:11px;color:var(--muted)}
-  .dir{font-size:11px;background:var(--inputBg);border:1px solid var(--line);color:var(--chipText);padding:2px 6px;border-radius:999px}
-  .stat{font-size:11px;color:var(--accent)}
+  .kanban{display:grid; grid-template-columns:repeat(6,1fr); gap:12px}
+  .col{background:transparent; border:1px solid var(--line); border-radius:14px; padding:12px; min-height:120px}
+  .col h3{margin:0 0 8px; font-size:13px; color:var(--chipText); letter-spacing:.03em; text-transform:uppercase}
+  .col .hint{color:var(--muted); font-size:12px; margin-bottom:8px}
+  .cards{display:flex; flex-direction:column; gap:8px; max-height:280px; overflow:auto}
+  .card{background:transparent; border:1px solid var(--line); border-radius:10px; padding:8px 10px; cursor:pointer}
+  .card:hover{border-color:#334155}
+  .routeLine{display:flex; align-items:center; gap:6px; font-weight:800}
+  .day{font-size:11px; color:#94a3b8}
+  .dir{font-size:11px; background:transparent; border:1px solid var(--line); color:var(--chipText); padding:2px 6px; border-radius:999px}
+  .stat{font-size:11px; color:#a5b4fc}
+
   /* Table */
-  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
-  thead th{position:sticky;top:0;backdrop-filter:blur(6px);z-index:3;background:var(--panel)}
-  th,td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:center}
-  tbody tr:nth-child(odd){background:var(--tableStripe)}
-  tbody tr.highlight{animation:highlight 1.4s ease}
-  @keyframes highlight{0%{background:var(--highlight);}100%{background:transparent;}}
-  td.route,th.route{text-align:left;position:sticky;left:0;background:var(--panel);z-index:2}
-  tbody tr:nth-child(odd) td.route{background:var(--tableStripe)}
-  .tier{font-weight:900;padding:6px 10px;border-radius:999px;display:inline-block;min-width:64px;cursor:help}
-  .t10{background:rgba(16,185,129,.15);color:var(--good);border:1px solid rgba(16,185,129,.35)}
-  .t15{background:rgba(34,197,94,.15);color:var(--ok);border:1px solid rgba(34,197,94,.35)}
-  .t20{background:rgba(6,182,212,.15);color:var(--mid);border:1px solid rgba(6,182,212,.35)}
-  .t30{background:rgba(245,158,11,.15);color:var(--warn);border:1px solid rgba(245,158,11,.35)}
-  .t60{background:rgba(239,68,68,.15);color:var(--meh);border:1px solid rgba(239,68,68,.35)}
-  .tBig{background:rgba(107,114,128,.15);color:var(--muted);border:1px solid rgba(107,114,128,.4)}
-  .badge{background:var(--card);border:1px solid var(--line);color:var(--chipText);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700}
+  table{width:100%; border-collapse:separate; border-spacing:0; font-size:14px}
+  thead th{position:sticky; top:0; backdrop-filter: blur(6px); z-index:3; background:rgba(17,24,39,.9);}
+  .light thead th{background:#fffffff0}
+  th,td{border-bottom:1px solid var(--line); padding:10px 12px; text-align:center}
+  tbody tr:nth-child(odd){background:var(--zebra)}
+  td.route, th.route{text-align:left; position:sticky; left:0; background:rgba(17,24,39,.95); z-index:2}
+  .light td.route, .light th.route{background:#fffffff0}
+  .tier{font-weight:900; padding:6px 10px; border-radius:999px; display:inline-block; min-width:64px}
+  .t10{background:rgba(16,185,129,.15); color:var(--good); border:1px solid rgba(16,185,129,.35)}
+  .t15{background:rgba(34,197,94,.15); color:var(--ok); border:1px solid rgba(34,197,94,.35)}
+  .t20{background:rgba(6,182,212,.15); color:var(--mid); border:1px solid rgba(6,182,212,.35)}
+  .t30{background:rgba(245,158,11,.15); color:var(--warn); border:1px solid rgba(245,158,11,.35)}
+  .t60{background:rgba(239,68,68,.15); color:var(--meh); border:1px solid rgba(239,68,68,.35)}
+  .tBig{background:rgba(107,114,128,.15); color:#cbd5e1; border:1px solid rgba(107,114,128,.4)}
+  .badge{background:transparent; border:1px solid var(--line); color:var(--chipText); padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700}
+  .highlight{animation:flash 1.6s ease}
+  @keyframes flash{0%{background:#04785733}100%{background:transparent}}
+
   /* Modal */
-  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:var(--modalOverlay);z-index:100}
-  .dialog{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:min(720px,92vw);padding:20px;max-height:90vh;overflow:auto}
-  .dialog h3{margin:0 0 12px}
-  .close{float:right;background:var(--chip);border:1px solid var(--line);color:var(--chipText);border-radius:8px;padding:6px 10px;cursor:pointer}
-  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
-  .metricCard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
-  .metricLabel{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin-bottom:4px}
-  .metricValue{font-size:20px;font-weight:800}
-  .metricSub{font-size:12px;color:var(--muted);margin-top:6px}
-  .gapList{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
-  .gapList .chip{background:var(--card)}
-  .departuresSection{margin-bottom:16px}
-  .departuresSection h4{margin:0 0 10px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-  .gapTables{display:grid;gap:12px}
-  .gapTables.twoCols{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-  .gapTables.stack{grid-template-columns:1fr}
-  .gapTableWrap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
-  .gapTableWrap h5{margin:0;font-size:13px;font-weight:700}
-  .gapTableScroll{max-height:300px;overflow:auto;border-radius:8px;border:1px solid var(--line)}
-  .gapTable{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
-  .gapTable th,.gapTable td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
-  .gapTable thead th{background:var(--panel);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-size:11px;position:sticky;top:0;z-index:1}
-  .gapTable tbody tr:nth-child(odd){background:var(--tableStripe)}
-  .gapTable tbody tr:last-child td{border-bottom:none}
-  .gapTable td.numCol{width:42px}
-  .gapBadge{display:inline-block;min-width:44px;padding:4px 8px;border-radius:6px;text-align:center;font-variant-numeric:tabular-nums;border:1px solid transparent}
-  .gapWarn{box-shadow:inset 0 0 0 1px var(--warn);color:var(--warn);background:rgba(245,158,11,.1)}
-  .gapHigh{background:rgba(239,68,68,.22);color:var(--meh);box-shadow:inset 0 0 0 1px rgba(239,68,68,.4);font-weight:700}
-  .modalBuckets{width:100%;border-collapse:separate;border-spacing:0;margin-bottom:0}
-  .modalBuckets th,.modalBuckets td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:13px}
-  .modalBuckets th{color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-size:11px}
-  .muted{color:var(--muted)}
-  tbody tr{scroll-margin-top:80px}
-  @media(max-width:900px){
-    .kanban{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-  }
-  @media(max-width:600px){
-    body{padding:16px}
-    header{margin-bottom:16px}
-    .toolbar{flex-direction:column;align-items:stretch}
-    .search{width:100%}
-    .themeToggle{width:100%;justify-content:space-between}
-  }
+  .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:100}
+  .dialog{background:var(--panel); border:1px solid var(--line); border-radius:16px; width:min(820px,92vw); padding:16px}
+  .dialog h3{margin:0 0 8px}
+  .dialog pre{display:none}
+  .close{float:right; background:transparent; border:1px solid var(--line); color:var(--chipText); border-radius:8px; padding:6px 10px; cursor:pointer}
+  .miniBuckets{margin-top:12px}
+  .miniBucket{width:100%; border-collapse:collapse; font-size:12px}
+  .miniBucket th,.miniBucket td{border-bottom:1px solid var(--line); padding:6px 8px; text-align:left}
+  .departuresSection{margin-top:12px}
+  .gapTables.twoCols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .gapTables.stack{display:grid;grid-template-columns:1fr;gap:12px}
+  .gapTableWrap h5{margin:0 0 4px;font-size:13px;color:var(--chipText)}
+  .gapTableScroll{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .gapTable{width:100%;border-collapse:collapse;font-size:13px}
+  .gapTable thead th{position:sticky;top:0;background:rgba(17,24,39,.9);z-index:1}
+  .light .gapTable thead th{background:#fffffff0}
+  .gapTable th,.gapTable td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+  .numCol{width:42px;text-align:right}
+  .gapBadge{display:inline-block;border:1px solid var(--line);border-radius:8px;padding:2px 6px}
+  .gapWarn{border-color:#f59e0b;color:#f59e0b}
+  .gapHigh{background:#ef44441a;border-color:#ef4444;color:#ef4444}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
-<body data-theme="dark">
+<body>
   <div class="wrap">
     <header>
       <h1>GTFS — Least Worst Frequency</h1>
-      <div class="headerActions">
-        <div class="themeToggle" role="group" aria-label="Theme">
-          <span>Theme</span>
-          <div class="themeButtons">
-            <button type="button" data-theme-choice="dark" class="active">Dark</button>
-            <button type="button" data-theme-choice="light">Light</button>
-          </div>
-        </div>
+      <div>
+        <button id="theme" class="btn" type="button" title="Toggle theme">Theme</button>
         <span class="badge">Strict +2 min grace · max 2 events</span>
       </div>
     </header>
 
-    <section class="panel controls">
+    <section class="panel">
       <div class="grid">
         <div class="field">
-          <label for="gtfs">GTFS ZIP</label>
+          <label>GTFS ZIP</label>
           <input id="gtfs" type="file" accept=".zip">
+          <div id="fname" class="fileName"></div>
         </div>
         <div class="field">
-          <label for="t0">Start</label>
+          <label>Start</label>
           <input id="t0" type="time" value="07:00">
         </div>
         <div class="field">
-          <label for="t1">End</label>
+          <label>End</label>
           <input id="t1" type="time" value="22:00">
         </div>
         <div class="field action">
           <label>&nbsp;</label>
-          <button id="go" class="btn" disabled>Analyze</button>
+          <button id="go" class="btn" type="button" disabled>Analyze</button>
         </div>
       </div>
       <div class="toolbar">
         <div class="seg" role="tablist" aria-label="Day filter">
-          <button type="button" data-day="Weekday" class="active">Weekday</button>
-          <button type="button" data-day="Saturday">Saturday</button>
-          <button type="button" data-day="Sunday">Sunday</button>
-          <button type="button" data-day="All">All</button>
+          <button data-day="Weekday" class="active" type="button">Weekday</button>
+          <button data-day="Saturday" type="button">Saturday</button>
+          <button data-day="Sunday" type="button">Sunday</button>
+          <button data-day="All" type="button">All</button>
         </div>
         <button id="focus15" class="btn" type="button">Weekday: 15-min or better</button>
         <div class="switch">
@@ -225,21 +158,16 @@
           <label for="merge">Merge directions per route</label>
         </div>
         <div class="search" style="flex:1">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path stroke="#9ca3af" stroke-width="2" d="m21 21-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-opacity=".5" stroke-width="2" d="m21 21-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"/></svg>
           <input id="q" placeholder="Search routes…">
         </div>
       </div>
     </section>
 
-    <section id="frequentBanner" class="panel banner">
-      <div class="bannerHeader">
-        <h2 id="bannerTitle">Weekday ≤15 min (07:00–22:00)</h2>
-        <span class="hint">Strict +2 min grace · max 2 events</span>
-      </div>
-      <div class="bannerBody">
-        <div id="bannerEmpty" class="bannerEmpty">No ≤15 min routes found.</div>
-        <div id="bannerPills" class="bannerPills"></div>
-      </div>
+    <section id="frequentBanner" class="panel">
+      <h3 id="bannerTitle">Weekday ≤15 min (07:00–22:00)</h3>
+      <div id="bannerPills"></div>
+      <div id="bannerEmpty" style="display:none">No ≤15 min routes found.</div>
     </section>
 
     <!-- Kanban Summary -->
@@ -265,7 +193,7 @@
               <th>Day</th>
               <th>≤10</th><th>11–15</th><th>16–20</th><th>21–30</th><th>31–60</th><th>&gt;60</th>
               <th>Avg</th>
-              <th>Least‑Worst Tier</th>
+              <th>Least-Worst Tier</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -284,23 +212,22 @@
   </div>
 
 <script>
-let RAW_ROWS = []; // {route, dir, day, b, avg, tier, hw:[], times:[]}
-let ROUTE_DAY_LOOKUP = new Map();
+let RAW_ROWS = []; // {route, dir, day, b, avg, tier, hw:[], times:[], dirDetails:{'0':{times:[],tier},'1':{...}} }
 const fileEl = document.getElementById('gtfs');
 const btn = document.getElementById('go');
-fileEl.addEventListener('change', e => btn.disabled = !e.target.files[0]);
+const fname = document.getElementById('fname');
+fileEl.addEventListener('change', ()=>{ btn.disabled = !(fileEl.files && fileEl.files.length>0); fname.textContent = fileEl.files?.[0]?.name || ''; });
 btn.addEventListener('click', analyze);
 
-const themeButtons = document.querySelectorAll('[data-theme-choice]');
-themeButtons.forEach(btnEl => btnEl.addEventListener('click', () => applyTheme(btnEl.dataset.themeChoice)));
-const savedTheme = localStorage.getItem('gtfs-theme');
-applyTheme(savedTheme || 'dark');
-
-function applyTheme(theme){
-  const t = theme === 'light' ? 'light' : 'dark';
-  document.body.setAttribute('data-theme', t);
-  localStorage.setItem('gtfs-theme', t);
-  themeButtons.forEach(b => b.classList.toggle('active', b.dataset.themeChoice === t));
+// theme
+document.getElementById('theme').addEventListener('click', toggleTheme);
+(function initTheme(){
+  const saved=localStorage.getItem('theme')||'dark';
+  if(saved==='light') document.body.classList.add('light');
+})();
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  localStorage.setItem('theme', document.body.classList.contains('light')?'light':'dark');
 }
 
 document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
@@ -337,32 +264,144 @@ function bucketCounts(headways){
   }
   return b;
 }
+// STRICT grace: at most 2 gaps where T < h ≤ T+2; any h > T+2 fails immediately.
 function leastWorstTier(headways){
   const tiers=[10,15,20,30,60,Infinity];
   const GRACE=2, MAX_GRACE_COUNT=2;
   for(const T of tiers){
     if(T===Infinity) return '>60';
-    let graceCount=0; let fail=false;
+    let graceCount=0;
+    let fail=false;
     for(const h of headways){
       if(h<=T) continue;
       if(h<=T+GRACE){
         graceCount++;
         if(graceCount>MAX_GRACE_COUNT){ fail=true; break; }
-      }else{ fail=true; break; }
+      }else{ // strictly beyond grace
+        fail=true; break;
+      }
     }
     if(!fail) return String(T);
   }
   return '>60';
 }
-function tierClass(t){
-  if(t==='10') return 't10';
-  if(t==='15') return 't15';
-  if(t==='20') return 't20';
-  if(t==='30') return 't30';
-  if(t==='60') return 't60';
-  return 'tBig';
+function directionLabel(dir){
+  const merge = document.getElementById('merge').checked;
+  if(merge) return '–';
+  if(String(dir)==='0') return 'Outbound';
+  if(String(dir)==='1') return 'Inbound';
+  return String(dir||'–');
+}
+function computeMedian(hw){
+  if(!hw.length) return 0;
+  const sorted=[...hw].sort((a,b)=>a-b);
+  const mid=Math.floor(sorted.length/2);
+  return (sorted.length%2===1) ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+}
+function computeMode(hw){
+  if(!hw.length) return 0;
+  const counts=new Map();
+  for(const h of hw) counts.set(h,(counts.get(h)||0)+1);
+  let best=hw[0], bestCount=0;
+  for(const [val,c] of counts.entries()){
+    if(c>bestCount || (c===bestCount && val<best)){ best=val; bestCount=c; }
+  }
+  return best;
+}
+function formatGroupedGaps(hw){
+  const top=[...hw].sort((a,b)=>b-a).slice(0,10);
+  const m=new Map(); for(const h of top) m.set(h,(m.get(h)||0)+1);
+  return [...m.entries()].sort((a,b)=>b[0]-a[0]).map(([gap,count])=>`${gap} min (×${count})`);
+}
+function tierThreshold(tier){ const n=parseInt(tier,10); return Number.isFinite(n)?n:Infinity; }
+function gapHighlightClass(gap, tier){
+  const T=tierThreshold(tier); if(!Number.isFinite(T)) return '';
+  if(gap>T+2) return 'gapHigh'; if(gap>T) return 'gapWarn'; return '';
+}
+function renderGapCell(gap, tier){
+  if(gap==null) return '—';
+  const cls=gapHighlightClass(gap, tier);
+  const classes=['gapBadge']; if(cls) classes.push(cls);
+  return `<span class="${classes.join(' ')}">${gap}</span>`;
 }
 
+function mergeRows(rows){
+  // merge by route+day using real headways and preserving per-direction times
+  const m = new Map();
+  for(const r of rows){
+    const key = `${r.route}::${r.day}`;
+    if(!m.has(key)) m.set(key,{route:r.route, day:r.day, dir:'–', hw:[], times:[], dirDetails:{'0':{times:[],tier:null}, '1':{times:[],tier:null}}});
+    const obj=m.get(key);
+    obj.hw = obj.hw.concat(r.hw);
+    obj.times = obj.times.concat(r.times);
+    // stash per-direction times for modal
+    if(r.dir==='0' || r.dir===0){ obj.dirDetails['0'].times = obj.dirDetails['0'].times.concat(r.times); obj.dirDetails['0'].tier = r.tier; }
+    if(r.dir==='1' || r.dir===1){ obj.dirDetails['1'].times = obj.dirDetails['1'].times.concat(r.times); obj.dirDetails['1'].tier = r.tier; }
+  }
+  const out=[];
+  for(const [,v] of m.entries()){
+    v.hw.sort((a,b)=>a-b);
+    const b = bucketCounts(v.hw);
+    const avg = v.hw.length ? Math.round(v.hw.reduce((a,b)=>a+b,0)/v.hw.length) : 0;
+    const tier = leastWorstTier(v.hw);
+    out.push({route:v.route, dir:'–', day:v.day, b, avg, tier, hw:v.hw, times:v.times.sort((a,b)=>a-b), dirDetails:v.dirDetails});
+  }
+  return out;
+}
+function cloneRow(r){
+  return {route:r.route, dir:r.dir, day:r.day, b:structuredClone?r.b:JSON.parse(JSON.stringify(r.b)), avg:r.avg, tier:r.tier, hw:[...r.hw], times:[...r.times], dirDetails:r.dirDetails};
+}
+
+function updateFrequentBanner(){
+  const banner=document.getElementById('frequentBanner');
+  const pills=document.getElementById('bannerPills');
+  const empty=document.getElementById('bannerEmpty');
+  if(!RAW_ROWS.length){ banner.style.display='none'; return; }
+  const start=document.getElementById('t0').value||'07:00';
+  const end=document.getElementById('t1').value||'22:00';
+  document.getElementById('bannerTitle').textContent=`Weekday ≤15 min (${start}–${end})`;
+
+  const weekdayRows = RAW_ROWS.filter(r=>r.day==='Weekday');
+  const merged = mergeRows(weekdayRows);
+  const frequent = merged.filter(r=>r.tier==='10' || r.tier==='15');
+
+  pills.innerHTML='';
+  if(!frequent.length){
+    empty.style.display='block';
+  }else{
+    empty.style.display='none';
+    frequent.sort((a,b)=>(''+a.route).localeCompare(''+b.route,undefined,{numeric:true}));
+    for(const r of frequent){
+      const pill=document.createElement('button');
+      pill.type='button';
+      pill.textContent=r.route;
+      pill.addEventListener('click',()=>scrollToRoute(r.route));
+      pills.appendChild(pill);
+    }
+  }
+  banner.style.display='block';
+}
+
+function scrollToRoute(route){
+  const weekdayButton=document.querySelector('.seg button[data-day="Weekday"]');
+  if(weekdayButton && !weekdayButton.classList.contains('active')){
+    document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('active'));
+    weekdayButton.classList.add('active');
+  }
+  const searchInput=document.getElementById('q'); if(searchInput.value) searchInput.value='';
+  render();
+  requestAnimationFrame(()=>{
+    const rows=[...document.querySelectorAll('#tbl tbody tr')].filter(tr=>tr.dataset.route===route && tr.dataset.day==='Weekday');
+    if(rows.length){
+      const target=rows[0];
+      target.classList.remove('highlight'); void target.offsetWidth;
+      target.classList.add('highlight');
+      target.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+  });
+}
+
+// Analyze
 async function analyze(){
   const file=fileEl.files[0]; if(!file) return;
   const t0=t2m(document.getElementById('t0').value);
@@ -382,6 +421,7 @@ async function analyze(){
   const routeById={}; for(const r of routes){ if(r.route_id) routeById[r.route_id]=r; }
   const calByService={}; for(const c of calendar){ if(c.service_id) calByService[c.service_id]=c; }
 
+  // origin departure per trip
   const originForTrip=new Map();
   {
     const earliest=new Map();
@@ -433,17 +473,19 @@ async function analyze(){
       for(const tid of tripIds){
         const m=originForTrip.get(tid);
         if(m==null) continue;
-        if(m<t0 || m>t1) continue; // inclusive window
+        if(m<t0 || m>t1) continue; // inclusive
         times.push(m);
       }
       if(times.length<2) continue;
       times.sort((a,b)=>a-b);
-      const dedupTimes=uniqueTimes(times);
-      if(dedupTimes.length<2) continue;
+
+      // de-duplicate identical minute marks
+      const dedup=[]; for(const t of times){ if(!dedup.length || dedup[dedup.length-1]!==t) dedup.push(t); }
+      if(dedup.length<2) continue;
 
       const gaps=[];
-      for(let i=1;i<dedupTimes.length;i++){
-        const h=dedupTimes[i]-dedupTimes[i-1];
+      for(let i=1;i<dedup.length;i++){
+        const h=dedup[i]-dedup[i-1];
         if(h>=5 && h<=240) gaps.push(h);
       }
       if(gaps.length===0) continue;
@@ -452,67 +494,47 @@ async function analyze(){
       const avg=Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length);
       const tier=leastWorstTier(gaps);
 
-      rows.push({route:rname, dir, day, b, avg, tier, hw:gaps, times:dedupTimes});
+      rows.push({route:rname, dir, day, b, avg, tier, hw:gaps, times:dedup});
 
+      // keep per-direction times for modal (by route+day)
       const routeDayKey=`${rname}::${day}`;
       if(!routeDayData.has(routeDayKey)) routeDayData.set(routeDayKey,{});
       const perDir=routeDayData.get(routeDayKey);
-      perDir[dir]={times:[...dedupTimes], tier};
+      perDir[dir]={times:[...dedup], tier};
     }
   }
 
+  // stash per-route/day dir details
   for(const row of rows){
     const key=`${row.route}::${row.day}`;
     row.dirDetails=cloneDirDetails(routeDayData.get(key));
   }
 
   RAW_ROWS = rows;
-  ROUTE_DAY_LOOKUP=new Map(routeDayData);
   render();
   document.getElementById('kanbanWrap').style.display='block';
   document.getElementById('tableWrap').style.display='block';
-}
-
-function cloneRow(row){
-  return {route:row.route, dir:String(row.dir), day:row.day, b:{...row.b}, avg:row.avg, tier:row.tier, hw:[...row.hw], times:[...row.times], dirDetails:cloneDirDetails(row.dirDetails)};
+  updateFrequentBanner();
 }
 
 function cloneDirDetails(details){
   const keys=new Set(['0','1']);
-  if(details){
-    Object.keys(details).forEach(k=>keys.add(k));
-  }
+  if(details){ Object.keys(details).forEach(k=>keys.add(k)); }
   const result={};
   for(const key of keys){
     const src=details?.[key];
-    result[key]={
-      times:src?.times ? [...src.times] : [],
-      tier:src?.tier ?? null
-    };
+    result[key]={ times:src?.times ? [...src.times] : [], tier:src?.tier ?? null };
   }
   return result;
 }
 
-function mergeRows(rows){
-  const m=new Map();
-  for(const r of rows){
-    const key=`${r.route}::${r.day}`;
-    if(!m.has(key)) m.set(key,{route:r.route, day:r.day, hw:[], times:[]});
-    const obj=m.get(key);
-    obj.hw.push(...r.hw);
-    obj.times.push(...r.times);
-  }
-  const merged=[];
-  for(const [key,obj] of m.entries()){
-    const hwList=[...obj.hw].sort((a,b)=>a-b);
-    const timeList=uniqueTimes(obj.times.sort((a,b)=>a-b));
-    const b=bucketCounts(hwList);
-    const avg=hwList.length ? Math.round(hwList.reduce((a,b)=>a+b,0)/hwList.length) : 0;
-    const tier=leastWorstTier(hwList);
-    const dirDetails=cloneDirDetails(ROUTE_DAY_LOOKUP.get(key));
-    merged.push({route:obj.route, dir:'–', day:obj.day, b, avg, tier, hw:hwList, times:timeList, dirDetails});
-  }
-  return merged;
+function tierClass(t){
+  if(t==='10') return 't10';
+  if(t==='15') return 't15';
+  if(t==='20') return 't20';
+  if(t==='30') return 't30';
+  if(t==='60') return 't60';
+  return 'tBig';
 }
 
 function render(opts={}){
@@ -523,31 +545,19 @@ function render(opts={}){
 
   let rows = RAW_ROWS.filter(r => (activeDay==='All' ? true : r.day===activeDay));
   if(q) rows = rows.filter(r => (''+r.route).toLowerCase().includes(q));
-  // Focus button narrows to Weekday; tier filter applied after merge to keep banner/kanban logic consistent
   if(focus15) rows = rows.filter(r => r.day==='Weekday');
 
-  // Use shared merge helper (real headways, not midpoints)
   let displayRows = merge ? mergeRows(rows) : rows.map(cloneRow);
-
-  // If focus15, keep only 10/15 tiers after merging
   if(focus15){
     displayRows = displayRows.filter(r => r.tier==='10' || r.tier==='15');
   }
-  }
 
-  displayRows.sort((a,b)=>{
-    if(a.route!==b.route) return (''+a.route).localeCompare(''+b.route,undefined,{numeric:true});
-    const order={'Weekday':0,'Saturday':1,'Sunday':2};
-    if(a.day!==b.day) return (order[a.day]??9)-(order[b.day]??9);
-    return (''+a.dir).localeCompare(''+b.dir);
-  });
-
+  // Populate KANBAN
   document.querySelectorAll('.col .cards').forEach(c=>c.innerHTML='');
   const buckets = {'10':[], '15':[], '20':[], '30':[], '60':[], '>60':[]};
   for(const r of displayRows) buckets[r.tier]?.push(r);
   for(const key of Object.keys(buckets)){
     const container = document.querySelector(`.col[data-tier="${key}"] .cards`);
-    if(!container) continue;
     const items = buckets[key] || [];
     items.sort((a,b)=>(''+a.route).localeCompare(''+b.route,undefined,{numeric:true}));
     for(const it of items){
@@ -562,24 +572,23 @@ function render(opts={}){
         <div class="day">${it.day}</div>
         <div class="stat">avg ${it.avg} • ≤10:${it.b['≤10']} • 11–15:${it.b['11–15']}</div>
       `;
-      div.addEventListener('click', ()=>{
-        openModal(it);
-      });
+      div.addEventListener('click', ()=>{ openModal(it); });
       container.appendChild(div);
     }
   }
 
+  // Details table
   const tbody=document.querySelector('#tbl tbody');
   tbody.innerHTML='';
+  displayRows.sort((a,b)=>{
+    if(a.route!==b.route) return (''+a.route).localeCompare(''+b.route,undefined,{numeric:true});
+    const order={'Weekday':0,'Saturday':1,'Sunday':2};
+    if(a.day!==b.day) return (order[a.day]??9)-(order[b.day]??9);
+    return (''+a.dir).localeCompare(''+b.dir);
+  });
   for(const r of displayRows){
     const tr=document.createElement('tr');
-    tr.dataset.route=r.route;
-    tr.dataset.day=r.day;
-    tr.dataset.dir=r.dir;
-    const tierText = r.tier==='>60' ? '&gt;60' : `${r.tier}`;
-    const tooltip = r.tier==='>60'
-      ? 'Strict rule: more than 60 min headways (over limit).'
-      : `Strict rule: maintain ≤${r.tier} min headways with up to two trips at +2 min.`;
+    tr.dataset.route=r.route; tr.dataset.day=r.day;
     tr.innerHTML = `
       <td class="route">${r.route}</td>
       <td>${directionLabel(r.dir)}</td>
@@ -591,125 +600,30 @@ function render(opts={}){
       <td>${r.b['31–60']}</td>
       <td>${r.b['>60']}</td>
       <td>${r.avg}</td>
-      <td><span class="tier ${tierClass(r.tier)}" title="${tooltip}">${tierText} min</span></td>
+      <td><span class="tier ${tierClass(r.tier)}" title="Tier T allows up to 2 gaps in (T, T+2] and none > T+2">${r.tier==='>60' ? '&gt;60' : r.tier} min</span></td>
     `;
+    tr.addEventListener('click', ()=>openModal(r));
     tbody.appendChild(tr);
   }
-
-  updateFrequentBanner();
 }
 
-function directionLabel(dir){
-  const val = dir==null ? '' : String(dir);
-  if(val==='–' || val==='—') return '–';
-  if(val==='0') return 'Outbound';
-  if(val==='1') return 'Inbound';
-  return val;
-}
-
-// Frequent banner + details helpers + modal (merged)
-function updateFrequentBanner(){
-  const banner=document.getElementById('frequentBanner');
-  const pills=document.getElementById('bannerPills');
-  const empty=document.getElementById('bannerEmpty');
-  if(!RAW_ROWS.length){ banner.style.display='none'; return; }
-
-  const start=document.getElementById('t0').value||'07:00';
-  const end=document.getElementById('t1').value||'22:00';
-  document.getElementById('bannerTitle').textContent=`Weekday ≤15 min (${start}–${end})`;
-
-  // Use merged (route+day) classification for the banner
-  const weekdayRows = RAW_ROWS.filter(r=>r.day==='Weekday');
-  const merged = mergeRows(weekdayRows); // uses real headways
-  const frequent = merged.filter(r=>r.tier==='10' || r.tier==='15');
-
-  pills.innerHTML='';
-  if(!frequent.length){
-    empty.style.display='block';
-  }else{
-    empty.style.display='none';
-    frequent.sort((a,b)=>(''+a.route).localeCompare(''+b.route,undefined,{numeric:true}));
-    for(const r of frequent){
-      const pill=document.createElement('button');
-      pill.type='button';
-      pill.textContent=r.route;
-      pill.addEventListener('click',()=>scrollToRoute(r.route));
-      pills.appendChild(pill);
+// Modal (Departures & Gaps)
+function getDirDetails(route, day){
+  // Build from RAW_ROWS for both directions
+  const details = {'0':{times:[],tier:null}, '1':{times:[],tier:null}};
+  for(const r of RAW_ROWS){
+    if(r.route===route && r.day===day){
+      if(String(r.dir)==='0'){ details['0'].times = details['0'].times.concat(r.times); details['0'].tier=r.tier; }
+      if(String(r.dir)==='1'){ details['1'].times = details['1'].times.concat(r.times); details['1'].tier=r.tier; }
     }
   }
-  banner.style.display='block';
+  for(const k of Object.keys(details)){ details[k].times.sort((a,b)=>a-b); }
+  return details;
 }
-
-function scrollToRoute(route){
-  const weekdayButton=document.querySelector('.seg button[data-day="Weekday"]');
-  if(weekdayButton && !weekdayButton.classList.contains('active')){
-    document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('active'));
-    weekdayButton.classList.add('active');
-  }
-  const searchInput=document.getElementById('q');
-  if(searchInput.value){ searchInput.value=''; }
-  render();
-  requestAnimationFrame(()=>{
-    const rows=[...document.querySelectorAll('#tbl tbody tr')].filter(tr=>tr.dataset.route===route && tr.dataset.day==='Weekday');
-    if(rows.length){
-      const target=rows[0];
-      target.classList.remove('highlight'); void target.offsetWidth;
-      target.classList.add('highlight');
-      target.scrollIntoView({behavior:'smooth',block:'center'});
-    }
-  });
-}
-
-function computeMedian(hw){
-  if(!hw.length) return 0;
-  const sorted=[...hw].sort((a,b)=>a-b);
-  const mid=Math.floor(sorted.length/2);
-  return (sorted.length%2===1) ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
-}
-function computeMode(hw){
-  if(!hw.length) return 0;
-  const counts=new Map();
-  for(const h of hw) counts.set(h,(counts.get(h)||0)+1);
-  let best=hw[0], bestCount=0;
-  for(const [val,c] of counts.entries()){
-    if(c>bestCount || (c===bestCount && val<best)){ best=val; bestCount=c; }
-  }
-  return best;
-}
-function formatMinutes(val){ return Number.isInteger(val) ? `${val} min` : `${Math.round(val*10)/10} min`; }
-
-function formatGroupedGaps(hw){
-  const top=[...hw].sort((a,b)=>b-a).slice(0,10);
-  const m=new Map();
-  for(const h of top) m.set(h,(m.get(h)||0)+1);
-  return [...m.entries()].sort((a,b)=>b[0]-a[0]).map(([gap,count])=>`${gap} min (×${count})`);
-}
-
-function tierThreshold(tier){
-  const n=parseInt(tier,10);
-  return Number.isFinite(n) ? n : Infinity;
-}
-function gapHighlightClass(gap, tier){
-  const T=tierThreshold(tier);
-  if(!Number.isFinite(T)) return '';
-  if(gap>T+2) return 'gapHigh';
-  if(gap>T)   return 'gapWarn';
-  return '';
-}
-function renderGapCell(gap, tier){
-  if(gap==null) return '—';
-  const cls=gapHighlightClass(gap, tier);
-  const classes=['gapBadge']; if(cls) classes.push(cls);
-  return `<span class="${classes.join(' ')}">${gap}</span>`;
-}
-
-// Build per-direction departures table
 function buildDepartureTable(label, detail){
   const times=(detail?.times||[]).slice().sort((a,b)=>a-b);
-  // dedupe identical times within the same direction
   const uniq=[]; for(const t of times){ if(!uniq.length || uniq[uniq.length-1]!==t) uniq.push(t); }
   const tier=detail?.tier ?? null;
-
   let rows='';
   if(uniq.length){
     for(let i=0;i<uniq.length;i++){
@@ -726,85 +640,45 @@ function buildDepartureTable(label, detail){
   }
   return `<div class="gapTableWrap"><h5>${label}</h5><div class="gapTableScroll"><table class="gapTable"><thead><tr><th>#</th><th>Time</th><th>Gap</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
-
 function buildDeparturesSection(dirDetails, merge){
   const layoutClass=merge ? 'stack' : 'twoCols';
-  const outboundLabel = directionLabel('0')==='–' ? 'Outbound' : directionLabel('0');
-  const inboundLabel  = directionLabel('1')==='–' ? 'Inbound'  : directionLabel('1');
-  const outbound=buildDepartureTable(outboundLabel, dirDetails?.['0']);
-  const inbound=buildDepartureTable(inboundLabel,  dirDetails?.['1']);
+  const outbound=buildDepartureTable('Outbound', dirDetails?.['0']);
+  const inbound=buildDepartureTable('Inbound',  dirDetails?.['1']);
   return `<div class="departuresSection"><h4>Departures &amp; Gaps</h4><div class="gapTables ${layoutClass}">${outbound}${inbound}</div></div>`;
 }
-
-// Modal
 function openModal(r){
   const modal = document.getElementById('modal');
   modal.style.display='flex';
-
   const dirLabel = directionLabel(r.dir);
   const dirText  = dirLabel && dirLabel!=='–' ? `, ${dirLabel}` : '';
   document.getElementById('modalTitle').textContent = `Details — Route ${r.route} (${r.day}${dirText})`;
 
-  // Stats
   const median = computeMedian(r.hw);
   const mode   = computeMode(r.hw);
   const avg    = r.hw.length ? Math.round(r.hw.reduce((a,b)=>a+b,0)/r.hw.length) : r.avg;
 
-  // Grouped top gaps
   const gapGroups = formatGroupedGaps(r.hw);
-  const gapHtml   = gapGroups.length ? gapGroups.map(g=>`<span class="chip">${g}</span>`).join(' ')
-                                     : '<span class="muted">Not enough data</span>';
+  const gapHtml   = gapGroups.length ? gapGroups.map(g=>`<span class="chip">${g}</span>`).join(' ') : '<span class="muted">Not enough data</span>';
 
-  // Bucket mini-table
   const bucketOrder=['≤10','11–15','16–20','21–30','31–60','>60'];
   const bucketHtml = bucketOrder.map(label=>`<tr><td>${label}</td><td>${r.b[label]}</td></tr>`).join('');
 
-  // Departures & gaps (per direction, even when merged visually)
   const mergeChecked = document.getElementById('merge').checked;
-  // dirDetails shaped like { '0': {times:[...], tier:'..'}, '1': {...} }
   const dirDetails   = r.dirDetails || getDirDetails(r.route, r.day);
   const departuresSection = buildDeparturesSection(dirDetails, mergeChecked);
 
-  // Render modal body
   const body = document.getElementById('modalBody');
   body.innerHTML = `
     <p><strong>Least-Worst Tier:</strong> ${r.tier==='>60'?'&gt;60':r.tier} min,
-       <strong>Median:</strong> ${formatMinutes(median)},
-       <strong>Mode:</strong> ${formatMinutes(mode)},
-       <span class="muted">Avg: ${formatMinutes(avg)}</span>
+       <strong>Median:</strong> ${Math.round(median)} min,
+       <strong>Mode:</strong> ${mode} min,
+       <span class="muted">Avg: ${avg} min</span>
     </p>
     <p><strong>Top gaps:</strong> ${gapHtml}</p>
     ${departuresSection}
     <div class="miniBuckets">
       <table class="miniBucket"><thead><tr><th>Bucket</th><th>Count</th></tr></thead><tbody>${bucketHtml}</tbody></table>
     </div>
-  `;
-}
-  document.getElementById('modalBody').innerHTML = `
-    <div class="metrics">
-      <div class="metricCard">
-        <span class="metricLabel">Median headway</span>
-        <span class="metricValue">${formatMinutes(median)}</span>
-      </div>
-      <div class="metricCard">
-        <span class="metricLabel">Most common headway</span>
-        <span class="metricValue">${formatMinutes(mode)}</span>
-      </div>
-      <div class="metricCard">
-        <span class="metricLabel">Average headway</span>
-        <span class="metricValue">${formatMinutes(avg)}</span>
-        <div class="metricSub">Based on origin departures</div>
-      </div>
-    </div>
-    <div>
-      <p><strong>Top gaps:</strong></p>
-      <div class="gapList">${gapHtml}</div>
-    </div>
-    ${departuresSection}
-    <table class="modalBuckets">
-      <thead><tr><th>Bucket</th><th>Count</th></tr></thead>
-      <tbody>${bucketHtml}</tbody>
-    </table>
   `;
 }
 function closeModal(){ document.getElementById('modal').style.display='none'; }
